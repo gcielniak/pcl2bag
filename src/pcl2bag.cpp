@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 
 	ros::init(argc, argv, "pcl2bag");
 	
-	boost::filesystem::path dir("/home/gcielniak/Documents/20151104T130053_data2_pcd");
+	boost::filesystem::path dir("/home/gcielniak/Documents/20151117T220223_200");
 
 	vector<string> file_names;
 
@@ -38,31 +38,53 @@ int main(int argc, char **argv) {
 		cerr << "No valid directory given!" << endl;
 	}
 
-	rosbag::Bag bag;
-	bag.open("test.bag", rosbag::bagmode::Write);
-
 	boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 
- 	std_msgs::String str;
-	str.data = std::string("foo");
-	pcl::PointCloud<pcl::PointXYZRGBA> cloud;
-	sensor_msgs:PointCloud2 cloud_msg;
+	ros::NodeHandle n;
 
-	for (unsigned int i = 0; i < file_names.size(); i++) {
+	ros::Publisher pub = n.advertise<sensor_msgs::PointCloud2>("pointcloud", 100);
+	ros::Publisher pub2 = n.advertise<sensor_msgs::Image>("image", 100);
+
+	ros::Rate loop_rate(5);
+
+	sensor_msgs::PointCloud2 cloud_msg;
+	sensor_msgs::Image image_msg;
+	pcl::PointCloud<pcl::PointXYZRGBA> cloud;
+
+//	rosbag::Bag bag;
+//	bag.open("test.bag", rosbag::bagmode::Write);
+
+	int i = 0;
+
+	while (ros::ok() && (i < file_names.size())) {
+
 		//extract timestamp
 			boost::filesystem::path path(file_names[i]);
 			boost::posix_time::ptime t = boost::posix_time::from_iso_string(path.filename().string().substr(6, 22));//image timestamp
 			boost::posix_time::time_duration td(t - epoch);//time since epoch	
+		//load file
+			pcl::io::loadPCDFile<pcl::PointXYZRGBA> (file_names[i], cloud);
 		//convert data type
 			pcl::toROSMsg(cloud, cloud_msg);
-			cloud_msg.header.frame_id = "point_cloud";
+			pcl::toROSMsg(cloud, image_msg);
+			cloud_msg.header.frame_id = "base_link";
 			cloud_msg.header.seq = i;
 			cloud_msg.header.stamp = ros::Time::fromBoost(td);
+			image_msg.header = cloud_msg.header;
 		//write to bag
-			bag.write("pointcloud", ros::Time::fromBoost(td), cloud_msg);
+//			bag.write("pointcloud", ros::Time::fromBoost(td), cloud_msg);
+
+		pub.publish(cloud_msg);
+		pub2.publish(image_msg);
+
+		ros::spinOnce();
+
+		loop_rate.sleep();
+
+		++i;
 	}
 
-	bag.close();
+//	bag.close();
 
 	return 0;
 }
