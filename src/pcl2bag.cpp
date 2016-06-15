@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 
 	ros::init(argc, argv, "pcl2bag");
 	
-	boost::filesystem::path dir("/home/gcielniak/Documents/20151104T130053_data2_pcd");
+	boost::filesystem::path dir("/media/data/data/broccoli/20151104T130053_data2_pcd");
 
 	vector<string> file_names;
 
@@ -114,14 +114,26 @@ int main(int argc, char **argv) {
 			cloud_msg.header.seq = i;
 //			cloud_msg.header.stamp = ros::Time::fromBoost(td);
 			cloud_msg.header.stamp = ros::Time::now();//fromBoost(td);
+
 			image_msg.header = cloud_msg.header;
+			image_msg.header.frame_id = "camera_rgb_optical_frame";
+			depth_image_msg.header = image_msg.header;
+
 			camera_info.header = image_msg.header;
-			camera_info.distortion_model = "plum_blob";
+			camera_info.header.frame_id = "camera_rgb_optical_frame";
+			camera_info.distortion_model = "plum_bob";
+			camera_info.height = cloud_msg.height;
+			camera_info.width = cloud_msg.width;
 			camera_info.D.resize(5);
 			camera_info.K[0] = camera_info.K[4] = 364.82281494140625; //fx=fy
 			camera_info.K[2] = 255.5; //cx
 			camera_info.K[5] = 211.5; //cy
 			camera_info.K[8] = 1;
+			camera_info.P[0] = camera_info.P[5] = 364.82281494140625; //fx=fy
+			camera_info.P[2] = 255.5; //cx
+			camera_info.P[6] = 211.5; //cy
+			camera_info.P[10] = 1;
+			camera_info.R[0] = camera_info.R[4] = camera_info.R[8] = 1;
  		
 		//write to bag
 //			bag.write("pointcloud", ros::Time::fromBoost(td), cloud_msg);
